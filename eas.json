@@ -1,0 +1,32 @@
+{
+  "cli": {
+    "version": ">= 3.13.3"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "credentialsSource": "remote"
+    },
+    "preview": {
+      "distribution": "internal",
+      "credentialsSource": "remote"
+    },
+    "production": {
+      "autoIncrement": true,
+      "credentialsSource": "remote"
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "keithtillis16@outlook.com",
+        "ascAppId": "6745871659",
+        "appleTeamId": "CNS962SZQT"
+      },
+      "android": {
+        "serviceAccountKeyPath": "path/to/your/service-account-key.json"
+      }
+    }
+  }
+}
