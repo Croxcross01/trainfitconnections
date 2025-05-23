@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UserRole } from '@/types';
 import { Alert } from 'react-native';
+import { trpcClient } from '@/lib/trpc';
 
 interface User {
   id: string;
@@ -216,6 +217,26 @@ export const useAuthStore = create<AuthState>()(
             registeredUsers: updatedUsers,
             userPasswords: updatedPasswords
           });
+          
+          // If registering as a trainer, also register in backend
+          if (role === 'trainer') {
+            try {
+              await trpcClient.trainers.registerTrainer.mutate({
+                id: newUser.id,
+                name: newUser.name,
+                email: newUser.email,
+                profileImage: newUser.profileImage || '',
+                bio: newUser.bio || '',
+                specialties: newUser.specialties || [],
+                certifications: newUser.certifications || [],
+                location: newUser.location,
+                hourlyRate: newUser.hourlyRate || 50,
+              });
+            } catch (err) {
+              console.error('Failed to register trainer in backend:', err);
+              // Optionally set error, but allow local registration to succeed
+            }
+          }
           
           console.log("Registration successful. User added:", newUser.email);
           console.log("Total registered users:", updatedUsers.length);

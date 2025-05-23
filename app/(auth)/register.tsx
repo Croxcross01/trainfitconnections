@@ -7,7 +7,10 @@ import { Button } from '@/components/Button';
 import { useAuthStore } from '@/store/auth-store';
 import Colors from '@/constants/colors';
 import { typography } from '@/styles/typography';
-import { UserRole } from '@/types';
+// ...existing code...
+// import { UserRole } from '@/types';
+// ...existing code...
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -17,7 +20,7 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState<UserRole>('client');
+  const [role, setRole] = useState<'client' | 'trainer'>('client');
   const [validationError, setValidationError] = useState('');
   
   // Clear any previous errors when component mounts
@@ -148,7 +151,6 @@ export default function RegisterScreen() {
             value={password}
             onChangeText={setPassword}
             leftIcon={<Lock size={20} color={Colors.text.secondary} />}
-            showPasswordToggle
           />
           
           <Input
@@ -157,7 +159,6 @@ export default function RegisterScreen() {
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             leftIcon={<Lock size={20} color={Colors.text.secondary} />}
-            showPasswordToggle
           />
           
           <View style={styles.roleContainer}>

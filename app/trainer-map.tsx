@@ -1,12 +1,13 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, List, MapPin, RefreshCw, Info } from 'lucide-react-native';
+import { ArrowLeft, List, RefreshCw, Info } from 'lucide-react-native';
 import { useClientStore } from '@/store/client-store';
 import { useAuthStore } from '@/store/auth-store';
 import Colors from '@/constants/colors';
 import { typography } from '@/styles/typography';
 import { useFocusEffect } from '@react-navigation/native';
+import MapView, { Marker } from 'react-native-maps';
 
 export default function TrainerMapScreen() {
   const router = useRouter();
@@ -92,30 +93,35 @@ export default function TrainerMapScreen() {
           <List size={24} color={Colors.text.primary} />
         </TouchableOpacity>
       </View>
-      
       <View style={styles.mapContainer}>
-        {Platform.OS === 'web' ? (
-          <View style={styles.webMapPlaceholder}>
-            <MapPin size={48} color={Colors.primary} />
-            <Text style={styles.webMapText}>Map view is not available on web</Text>
-            <Text style={styles.webMapSubtext}>Please use the list view to browse trainers</Text>
-            <TouchableOpacity 
-              style={styles.webMapButton}
-              onPress={navigateToListView}
-            >
-              <Text style={styles.webMapButtonText}>Go to List View</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View style={styles.mapPlaceholder}>
-            <MapPin size={48} color={Colors.primary} />
-            <Text style={styles.mapPlaceholderText}>Map View</Text>
-            <Text style={styles.mapPlaceholderSubtext}>
-              {isLoading 
-                ? 'Loading trainer locations...' 
-                : `${nearbyTrainers.length} trainers available in your area`}
-            </Text>
-            {isLoading && <ActivityIndicator color={Colors.primary} style={styles.mapLoader} />}
+        <MapView
+          style={{ flex: 1 }}
+          initialRegion={{
+            latitude: user?.location?.latitude || 30.2672,
+            longitude: user?.location?.longitude || -97.7431,
+            latitudeDelta: 0.1,
+            longitudeDelta: 0.1,
+          }}
+          customMapStyle={darkMapStyle}
+        >
+          {nearbyTrainers.map((trainer) =>
+            trainer.location ? (
+              <Marker
+                key={trainer.id}
+                coordinate={{
+                  latitude: trainer.location.latitude,
+                  longitude: trainer.location.longitude,
+                }}
+                title={trainer.name}
+                description={trainer.bio}
+              />
+            ) : null
+          )}
+        </MapView>
+        {isLoading && (
+          <View style={styles.mapLoaderOverlay}>
+            <ActivityIndicator color={Colors.primary} size="large" />
+            <Text style={styles.mapLoaderText}>Loading trainer locations...</Text>
           </View>
         )}
       </View>
@@ -167,6 +173,22 @@ export default function TrainerMapScreen() {
   );
 }
 
+const darkMapStyle = [
+  { elementType: 'geometry', stylers: [{ color: '#212121' }] },
+  { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#757575' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#212121' }] },
+  { featureType: 'administrative', elementType: 'geometry', stylers: [{ color: '#757575' }] },
+  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#181818' }] },
+  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#181818' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#383838' }] },
+  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#212121' }] },
+  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#8a8a8a' }] },
+  { featureType: 'transit', elementType: 'geometry', stylers: [{ color: '#2f2f2f' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#000000' }] },
+  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#3d3d3d' }] },
+];
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -196,52 +218,15 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: Colors.background.darker,
   },
-  mapPlaceholder: {
-    flex: 1,
+  mapLoaderOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.background.darker,
   },
-  mapPlaceholderText: {
-    ...typography.h4,
+  mapLoaderText: {
     color: Colors.text.primary,
-    marginTop: 16,
-  },
-  mapPlaceholderSubtext: {
-    ...typography.bodyMedium,
-    color: Colors.text.secondary,
-    marginTop: 8,
-  },
-  mapLoader: {
-    marginTop: 16,
-  },
-  webMapPlaceholder: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: Colors.background.darker,
-  },
-  webMapText: {
-    ...typography.h4,
-    color: Colors.text.primary,
-    marginTop: 16,
-  },
-  webMapSubtext: {
-    ...typography.bodyMedium,
-    color: Colors.text.secondary,
-    marginTop: 8,
-    marginBottom: 16,
-  },
-  webMapButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    backgroundColor: Colors.primary,
-    borderRadius: 8,
-  },
-  webMapButtonText: {
-    ...typography.bodyMedium,
-    color: Colors.text.inverse,
-    fontWeight: '600',
+    marginTop: 12,
   },
   statsContainer: {
     flexDirection: 'row',

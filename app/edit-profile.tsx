@@ -84,16 +84,8 @@ export default function EditProfileScreen() {
           return;
         }
         
-        // In a real app, you would upload this to a server and get back a URL
-        // For this demo, we'll use a mock URL instead of the local URI to avoid large payloads
-        const mockProfileImages = [
-          'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=1000',
-          'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=1000',
-          'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1000',
-        ];
-        
-        const randomIndex = Math.floor(Math.random() * mockProfileImages.length);
-        setProfileImage(mockProfileImages[randomIndex]);
+        // Set the selected image URI as the profile image
+        setProfileImage(selectedAsset.uri);
       }
     } catch (error) {
       console.error('Error picking image:', error);

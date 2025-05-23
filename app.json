@@ -2,7 +2,7 @@
   "expo": {
     "name": "TrainFit",
     "slug": "trainfitconnections",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
@@ -15,14 +15,27 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "app.rork.trainfit-connections"
+      "bundleIdentifier": "app.rork.trainfit-connections",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "This app uses the camera to let you take profile and progress photos, and to scan QR codes for workouts or classes.",
+        "NSPhotoLibraryUsageDescription": "This app accesses your photo library so you can upload progress pictures and personalize your profile."
+      },
+      "config": {
+        "googleMapsApiKey": "AIzaSyArz11kMLQfBlGrtLXmqYPZB_lb_zFVuxM"
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "app.rork.trainfit-connections"
+      "package": "app.rork.trainfit_connections",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyArz11kMLQfBlGrtLXmqYPZB_lb_zFVuxM"
+        }
+      }
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
@@ -37,6 +50,14 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": "https://rork.app/"
+      },
+      "eas": {
+        "projectId": "11cd59da-7e1d-451c-a74b-66968ff0d617"
+      }
     }
   }
 }

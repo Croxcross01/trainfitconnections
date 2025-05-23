@@ -5,6 +5,7 @@ import { Trainer, Session, WorkoutPlan, MealPlan, Reminder, Payment, ReminderTyp
 import { useAuthStore } from './auth-store';
 import { useTrainerStore } from './trainer-store';
 import { Alert } from 'react-native';
+import { trpc, trpcClient } from '@/lib/trpc';
 
 interface ClientState {
   nearbyTrainers: Trainer[];
@@ -558,18 +559,35 @@ export const useClientStore = create<ClientState>()(
       
       searchTrainers: (query, filters) => {
         set({ isLoading: true });
-        
         // Get all trainers from auth store
-        const registeredTrainers = useAuthStore.getState().getTrainers();
-        
+        const registeredTrainersRaw = useAuthStore.getState().getTrainers();
+        // Map to Trainer type
+        const registeredTrainers: Trainer[] = registeredTrainersRaw.map((t: any) => ({
+          id: t.id,
+          name: t.name,
+          email: t.email,
+          role: 'trainer',
+          profileImage: t.profileImage || '',
+          bio: t.bio || '',
+          specialties: t.specialties || [],
+          certifications: t.certifications || [],
+          experience: typeof t.experience === 'number' ? t.experience : 0,
+          rating: typeof t.rating === 'number' ? t.rating : 0,
+          reviewCount: typeof t.reviewCount === 'number' ? t.reviewCount : 0,
+          pricing: t.pricing || { oneOnOne: 50, group: 25, virtual: 40 },
+          location: t.location || { latitude: 0, longitude: 0, address: '' },
+          socialLinks: t.socialLinks || {},
+          availability: t.availability || [],
+          isVerified: !!t.isVerified,
+          hourlyRate: typeof t.hourlyRate === 'number' ? t.hourlyRate : 50,
+          rateType: t.rateType || 'hourly',
+          customRates: t.customRates || [],
+          clients: t.clients || [],
+        }));
         // Combine with mock trainers if needed
         const allTrainers = [...registeredTrainers, ...mockTrainers];
-        
         // Remove duplicates (in case mock trainers overlap with registered ones)
         const uniqueTrainers = Array.from(new Map(allTrainers.map(trainer => [trainer.id, trainer])).values());
-        
-        console.log(`Searching among ${uniqueTrainers.length} trainers (${registeredTrainers.length} registered + ${mockTrainers.length} mock)`);
-        
         // Simulate API call
         setTimeout(() => {
           // Filter trainers based on query
@@ -578,7 +596,6 @@ export const useClientStore = create<ClientState>()(
             trainer.specialties?.some(s => s.toLowerCase().includes(query.toLowerCase())) ||
             trainer.location?.address.toLowerCase().includes(query.toLowerCase())
           );
-          
           set({ 
             nearbyTrainers: filteredTrainers,
             isLoading: false,
@@ -589,116 +606,41 @@ export const useClientStore = create<ClientState>()(
       
       fetchNearbyTrainers: async (latitude, longitude) => {
         set({ isLoading: true, error: null });
-        
         try {
-          // Simulate API call
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
-          // Get all trainers from auth store
-          const registeredTrainers = useAuthStore.getState().getTrainers();
-          
-          // Process registered trainers to ensure they have all required Trainer properties
-          const processedRegisteredTrainers: Trainer[] = registeredTrainers
-            .filter(user => user.role === 'trainer')
-            .map(user => {
-              // Process certifications to ensure they are Certification objects
-              const processedCertifications: Certification[] = Array.isArray(user.certifications)
-                ? user.certifications.map(cert => {
-                    if (typeof cert === 'string') {
-                      return {
-                        id: `cert_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-                        name: cert,
-                        organization: 'Unknown',
-                        year: new Date().getFullYear()
-                      };
-                    } else if (typeof cert === 'object' && cert !== null) {
-                      return {
-                        id: cert.id || `cert_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-                        name: cert.name || 'Unknown Certification',
-                        organization: cert.organization || 'Unknown',
-                        year: cert.year || new Date().getFullYear()
-                      };
-                    }
-                    return {
-                      id: `cert_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-                      name: 'Unknown Certification',
-                      organization: 'Unknown',
-                      year: new Date().getFullYear()
-                    };
-                  })
-                : [];
-              
-              // Process availability to ensure it's in the correct format
-              const processedAvailability: Availability[] = Array.isArray(user.availability)
-                ? user.availability.map(avail => {
-                    if (typeof avail === 'object' && avail !== null) {
-                      if ('day' in avail && 'startTime' in avail && 'endTime' in avail) {
-                        return avail as Availability;
-                      } else if ('days' in avail && 'hours' in avail) {
-                        // Convert from a different format if needed
-                        const day = Array.isArray(avail.days) && avail.days.length > 0 
-                          ? avail.days[0].toLowerCase() 
-                          : 'monday';
-                        
-                        return {
-                          day: day as 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday',
-                          startTime: typeof avail.hours === 'object' && avail.hours !== null && 'start' in avail.hours 
-                            ? avail.hours.start 
-                            : '09:00',
-                          endTime: typeof avail.hours === 'object' && avail.hours !== null && 'end' in avail.hours 
-                            ? avail.hours.end 
-                            : '17:00'
-                        };
-                      }
-                    }
-                    return {
-                      day: 'monday',
-                      startTime: '09:00',
-                      endTime: '17:00'
-                    };
-                  })
-                : [];
-              
-              // Create a properly formatted Trainer object
-              return {
-                ...user,
-                role: 'trainer' as const,
-                specialties: user.specialties || [],
-                certifications: processedCertifications,
-                experience: typeof user.experience === 'number' ? user.experience : 0,
-                rating: typeof user.rating === 'number' ? user.rating : 4.5,
-                reviewCount: typeof user.reviewCount === 'number' ? user.reviewCount : 0,
-                pricing: user.pricing || {
-                  oneOnOne: 50,
-                  group: 25,
-                  virtual: 40
-                },
-                availability: processedAvailability,
-                isVerified: Boolean(user.isVerified),
-                hourlyRate: typeof user.hourlyRate === 'number' ? user.hourlyRate : 50,
-                rateType: user.rateType || 'hourly',
-                customRates: user.customRates || [],
-                clients: user.clients || []
-              } as Trainer;
-            });
-          
-          // Combine with mock trainers
-          const allTrainers = [...processedRegisteredTrainers, ...mockTrainers];
-          
-          // Remove duplicates (in case mock trainers overlap with registered ones)
+          // Fetch real trainers from backend
+          const realTrainersRaw = await trpcClient.trainers.getAllTrainers.query();
+          // Map backend trainers to Trainer type
+          const realTrainers: Trainer[] = realTrainersRaw.map((t: any) => ({
+            id: t.id,
+            name: t.name,
+            email: t.email,
+            role: 'trainer',
+            profileImage: t.profileImage || '',
+            bio: t.bio || '',
+            specialties: t.specialties || [],
+            certifications: t.certifications || [],
+            experience: typeof t.experience === 'number' ? t.experience : 0,
+            rating: typeof t.rating === 'number' ? t.rating : 0,
+            reviewCount: typeof t.reviewCount === 'number' ? t.reviewCount : 0,
+            pricing: t.pricing || { oneOnOne: 50, group: 25, virtual: 40 },
+            location: t.location || { latitude: 0, longitude: 0, address: '' },
+            socialLinks: t.socialLinks || {},
+            availability: t.availability || [],
+            isVerified: !!t.isVerified,
+            hourlyRate: typeof t.hourlyRate === 'number' ? t.hourlyRate : 50,
+            rateType: t.rateType || 'hourly',
+            customRates: t.customRates || [],
+            clients: t.clients || [],
+          }));
+          // Combine with mock trainers for demo/fallback
+          const allTrainers = [...realTrainers, ...mockTrainers];
+          // Remove duplicates by ID
           const uniqueTrainers = Array.from(new Map(allTrainers.map(trainer => [trainer.id, trainer])).values());
-          
-          console.log(`Found ${processedRegisteredTrainers.length} registered trainers and ${mockTrainers.length} mock trainers`);
-          console.log(`Total unique trainers: ${uniqueTrainers.length}`);
-          
-          // In a real app, we would filter trainers based on location
-          // For now, we'll just return all trainers
           set({ 
             nearbyTrainers: uniqueTrainers,
             isLoading: false,
             lastRefreshed: Date.now()
           });
-          
           return Promise.resolve();
         } catch (error) {
           set({ 
